@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Discover anime, movies, and manga tailored to your taste — smart genre filters powered by Jikan and The Movie Database."
+    />
+    <title>RecommendMe — Your next watch, read, or binge</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div
+      id="loadingOverlay"
+      class="loading-overlay"
+      aria-hidden="true"
+      role="status"
+    >
+      <div class="loading-panel">
+        <div class="loading-visual" aria-hidden="true">
+          <span class="loading-ring"></span>
+          <span class="loading-ring loading-ring--delayed"></span>
+          <span class="loading-core"></span>
+        </div>
+        <p class="loading-title" id="loadingTitle">Finding recommendations</p>
+        <p class="loading-sub" id="loadingMessage">
+          Querying catalogs and matching genres…
+        </p>
+        <div class="loading-bar" aria-hidden="true">
+          <span class="loading-bar-fill"></span>
+        </div>
+      </div>
+    </div>
+
+    <a class="skip-link" href="#main">Skip to form</a>
+
+    <div class="bg-mesh" aria-hidden="true"></div>
+    <div class="bg-grain" aria-hidden="true"></div>
+
+    <header class="site-header">
+      <div class="site-header__inner">
+        <a class="brand" href="#" aria-label="RecommendMe home">
+          <span class="brand__mark">◆</span>
+          <span class="brand__text">RecommendMe</span>
+        </a>
+        <span class="site-header__tag">Free · No account</span>
+      </div>
+    </header>
+
+    <main id="main" class="main">
+      <section class="hero">
+        <p class="hero__eyebrow">Personalized discovery</p>
+        <h1 class="hero__title">
+          Pick a lane.<br />
+          <span class="hero__title-accent">We’ll fill the queue.</span>
+        </h1>
+        <p class="hero__lead">
+          Choose anime, movies, or manga, dial in genres you want (and what to
+          skip), then get a tight list of titles worth your time.
+        </p>
+      </section>
+
+      <section class="panel" aria-labelledby="builder-heading">
+        <div class="panel__head">
+          <h2 id="builder-heading" class="panel__title">Build your request</h2>
+          <p class="panel__hint">
+            Select a type first — then genres unlock below.
+          </p>
+        </div>
+
+        <div class="field">
+          <span class="field__label" id="type-label">What are you in the mood for?</span>
+          <div
+            class="type-grid"
+            role="group"
+            aria-labelledby="type-label"
+          >
+            <button
+              type="button"
+              class="type-card"
+              data-type-value="anime"
+              aria-pressed="false"
+            >
+              <span class="type-card__icon" aria-hidden="true">▸</span>
+              <span class="type-card__name">Anime</span>
+              <span class="type-card__desc">Series &amp; films</span>
+            </button>
+            <button
+              type="button"
+              class="type-card"
+              data-type-value="movie"
+              aria-pressed="false"
+            >
+              <span class="type-card__icon" aria-hidden="true">■</span>
+              <span class="type-card__name">Movies</span>
+              <span class="type-card__desc">Theater &amp; streaming</span>
+            </button>
+            <button
+              type="button"
+              class="type-card"
+              data-type-value="manga"
+              aria-pressed="false"
+            >
+              <span class="type-card__icon" aria-hidden="true">▤</span>
+              <span class="type-card__name">Manga</span>
+              <span class="type-card__desc">Print &amp; digital</span>
+            </button>
+          </div>
+          <label class="visually-hidden" for="entertainment-type"
+            >Type of entertainment</label
+          >
+          <select
+            id="entertainment-type"
+            class="visually-hidden"
+            onchange="updateSelections()"
+          >
+            <option value="" selected disabled>Select type</option>
+            <option value="anime">Anime</option>
+            <option value="movie">Movie</option>
+            <option value="manga">Manga</option>
+          </select>
+        </div>
+
+        <div class="dropdown-container">
+          <div id="genre-section" class="dropdown field hidden">
+            <label class="field__label" for="genre-dropdown">Genres to include</label>
+            <div
+              id="genre-dropdown"
+              class="dropdown-toggle"
+              role="button"
+              tabindex="0"
+              aria-expanded="false"
+              aria-haspopup="listbox"
+            >
+              Select genres
+            </div>
+            <div class="dropdown-content" id="genres-container"></div>
+          </div>
+
+          <div id="exclude-genre-section" class="dropdown field hidden">
+            <label class="field__label" for="exclude-genre-dropdown"
+              >Genres to avoid</label
+            >
+            <div
+              id="exclude-genre-dropdown"
+              class="dropdown-toggle disabled"
+              role="button"
+              tabindex="0"
+              aria-expanded="false"
+            >
+              Exclude genres
+            </div>
+            <div class="dropdown-content" id="exclude-genres-container"></div>
+          </div>
+        </div>
+
+        <div class="grid-controls">
+          <div class="form-group hidden field" id="year-range-section">
+            <label class="field__label" for="year-range">Year range</label>
+            <select id="year-range">
+              <option value="">Any year</option>
+              <option value="2000-2005">2000 – 2005</option>
+              <option value="2006-2010">2006 – 2010</option>
+              <option value="2011-2015">2011 – 2015</option>
+              <option value="2016-2020">2016 – 2020</option>
+              <option value="2021-2025">2021 – 2025</option>
+            </select>
+          </div>
+
+          <div class="form-group hidden field" id="recommendation-count-section">
+            <label class="field__label" for="recommendation-count"
+              >How many picks?</label
+            >
+            <input
+              class="form-control"
+              name="quantity"
+              id="recommendation-count"
+              type="number"
+              min="4"
+              max="8"
+              value="4"
+              inputmode="numeric"
+            />
+            <span class="helper-text">Between 4 and 8 results.</span>
+          </div>
+        </div>
+
+        <div class="button-container">
+          <button
+            type="button"
+            id="generate-btn"
+            class="btn btn--primary btn--full"
+            onclick="generateRecommendation()"
+            hidden
+          >
+            Generate recommendations
+          </button>
+        </div>
+      </section>
+
+      <footer class="site-footer">
+        <p>
+          Data:
+          <a
+            href="https://www.themoviedb.org/"
+            target="_blank"
+            rel="noopener noreferrer"
+            >The Movie Database</a
+          >
+          ·
+          <a
+            href="https://jikan.moe/"
+            target="_blank"
+            rel="noopener noreferrer"
+            >Jikan</a
+          >
+        </p>
+        <p>
+          By
+          <a
+            href="https://github.com/Arnav-Pratap"
+            target="_blank"
+            rel="noopener noreferrer"
+            >J.D</a
+          >
+          ·
+          <a href="mailto:jamesdionisio288@gmail.com">Contact</a>
+        </p>
+      </footer>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
