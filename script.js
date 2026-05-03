@@ -118,13 +118,13 @@ function updateSelections() {
     "recommendation-count-section"
   );
   const yearRangeSection = document.getElementById("year-range-section");
-  const recommendButton = document.querySelector(".button-container button");
+  const recommendButton = document.getElementById("generate-btn");
 
   genresContainer.innerHTML = "";
   excludeGenresContainer.innerHTML = "";
-  document.getElementById("genre-dropdown").textContent = "Select Genres";
+  document.getElementById("genre-dropdown").textContent = "Select genres";
   document.getElementById("exclude-genre-dropdown").textContent =
-    "Exclude Genres";
+    "Exclude genres";
 
   document.getElementById("exclude-genre-dropdown").classList.add("disabled");
 
@@ -133,7 +133,7 @@ function updateSelections() {
     excludeGenreSection.classList.remove("hidden");
     recommendationCountSection.classList.remove("hidden");
     yearRangeSection.classList.remove("hidden");
-    recommendButton.style.display = "block";
+    recommendButton.hidden = false;
 
     const sortedGenres = [...genres[entertainmentType]].sort((a, b) =>
       a.name.localeCompare(b.name)
@@ -157,7 +157,7 @@ function updateSelections() {
     excludeGenreSection.classList.add("hidden");
     recommendationCountSection.classList.add("hidden");
     yearRangeSection.classList.add("hidden");
-    recommendButton.style.display = "none";
+    recommendButton.hidden = true;
   }
 }
 
@@ -173,7 +173,7 @@ function updateExcludeDropdown() {
   const excludeDropdown = document.getElementById("exclude-genre-dropdown");
 
   excludeGenresContainer.innerHTML = "";
-  excludeDropdown.innerHTML = "Exclude Genres";
+  excludeDropdown.innerHTML = "Exclude genres";
 
   const sortedGenres = [...genres[entertainmentType]].sort((a, b) =>
     a.name.localeCompare(b.name)
@@ -224,7 +224,7 @@ function updateDropdownLabel() {
       .getElementById("exclude-genre-dropdown")
       .classList.remove("disabled");
   } else {
-    dropdown.textContent = "Select Genres";
+    dropdown.textContent = "Select genres";
     document.getElementById("exclude-genre-dropdown").classList.add("disabled");
   }
 
@@ -257,7 +257,7 @@ function updateExcludeDropdownLabel() {
       dropdown.appendChild(span);
     });
   } else {
-    dropdown.textContent = "Exclude Genres";
+    dropdown.textContent = "Exclude genres";
   }
 }
 
@@ -292,24 +292,32 @@ function toggleDropdown() {
   const dropdownContent = document.querySelector(
     "#genre-section .dropdown-content"
   );
-  dropdownContent.classList.toggle("show");
+  const toggle = document.getElementById("genre-dropdown");
+  const open = dropdownContent.classList.toggle("show");
+  toggle.setAttribute("aria-expanded", open ? "true" : "false");
 }
 
 function toggleExcludeDropdown() {
   const dropdownContent = document.querySelector(
     "#exclude-genre-section .dropdown-content"
   );
-  dropdownContent.classList.toggle("show");
+  const toggle = document.getElementById("exclude-genre-dropdown");
+  const open = dropdownContent.classList.toggle("show");
+  toggle.setAttribute("aria-expanded", open ? "true" : "false");
 }
 
 window.onclick = function (event) {
-  if (!event.target.matches(".dropdown-toggle")) {
+  if (!event.target.closest(".dropdown-toggle")) {
     const dropdowns = document.querySelectorAll(".dropdown-content");
     dropdowns.forEach((dropdown) => {
       if (dropdown.classList.contains("show")) {
         dropdown.classList.remove("show");
       }
     });
+    const genreToggle = document.getElementById("genre-dropdown");
+    const excludeToggle = document.getElementById("exclude-genre-dropdown");
+    if (genreToggle) genreToggle.setAttribute("aria-expanded", "false");
+    if (excludeToggle) excludeToggle.setAttribute("aria-expanded", "false");
   }
 };
 
@@ -477,12 +485,6 @@ async function getRecommendationsFromAPI(
   }
 }
 
-// Utility function to show/hide loading spinner
-function showLoadingSpinner(show) {
-  const spinner = document.getElementById("loadingSpinner");
-  spinner.style.display = show ? "block" : "none";
-}
-
 function getSelectedGenres() {
   // Example: Retrieve selected genres from checkboxes
   return [
@@ -542,29 +544,43 @@ function displayRecommendations(recommendations, entertainmentType) {
   });
 }
 
-let spinnerContainer;
-function showLoadingSpinner() {
-  // Check if the spinnerContainer has already been created
-  if (!spinnerContainer) {
-    spinnerContainer = document.createElement("div");
-    spinnerContainer.classList.add("loading-spinner");
+function setLoadingCopy(entertainmentType) {
+  const titleEl = document.getElementById("loadingTitle");
+  const msgEl = document.getElementById("loadingMessage");
+  const copy = {
+    anime: {
+      title: "Finding anime",
+      msg: "Matching genres on Jikan and assembling your queue…",
+    },
+    manga: {
+      title: "Finding manga",
+      msg: "Browsing titles that fit your include / exclude rules…",
+    },
+    movie: {
+      title: "Finding movies",
+      msg: "Searching The Movie Database for titles in your range…",
+    },
+  };
+  const c = copy[entertainmentType] || {
+    title: "Finding recommendations",
+    msg: "Querying catalogs…",
+  };
+  titleEl.textContent = c.title;
+  msgEl.textContent = c.msg;
+}
 
-    // Get the overlay element and append the spinner inside it
-    const overlay = document.getElementById("loadingOverlay");
-    overlay.style.display = "flex"; // Show the overlay
-    overlay.appendChild(spinnerContainer);
-  }
+function showLoadingSpinner() {
+  const type = document.getElementById("entertainment-type").value;
+  setLoadingCopy(type);
+  const overlay = document.getElementById("loadingOverlay");
+  overlay.classList.add("is-visible");
+  overlay.setAttribute("aria-hidden", "false");
 }
 
 function hideLoadingSpinner() {
-  // Hide the overlay and remove the spinner
   const overlay = document.getElementById("loadingOverlay");
-  overlay.style.display = "none"; // Hide the overlay
-
-  if (spinnerContainer) {
-    spinnerContainer.remove();
-    spinnerContainer = null;
-  }
+  overlay.classList.remove("is-visible");
+  overlay.setAttribute("aria-hidden", "true");
 }
 function getApiUrl(
   entertainmentType,
@@ -645,111 +661,216 @@ function getApiUrl(
 }
 
 function displayPopup(data, entertainmentType, noRecommendations = false) {
-  const existingPopup = document.querySelector(".popup");
-  if (existingPopup) {
-    existingPopup.remove();
+  const existing = document.querySelector(".results-modal");
+  if (existing) {
+    existing.remove();
   }
 
-  const popup = document.createElement("div");
-  popup.classList.add("popup");
+  const typeLabels = {
+    anime: "Anime",
+    movie: "Movies",
+    manga: "Manga",
+  };
+  const typeLabel = typeLabels[entertainmentType] || "Results";
 
-  const closeButton = document.createElement("span");
-  closeButton.classList.add("popup-close");
-  closeButton.textContent = "x";
-  closeButton.onclick = () => popup.remove();
-  popup.appendChild(closeButton);
+  const showEmpty =
+    noRecommendations ||
+    !Array.isArray(data) ||
+    data.length === 0;
 
-  const popupContainer = document.createElement("div");
-  popupContainer.classList.add("popup-container");
+  const modal = document.createElement("div");
+  modal.className = "results-modal";
+  modal.setAttribute("role", "dialog");
+  modal.setAttribute("aria-modal", "true");
+  modal.setAttribute("aria-labelledby", "results-modal-title");
 
-  if (noRecommendations) {
-    const errorMessage = document.createElement("p");
-    errorMessage.textContent =
-      "No recommendations found. Please try adjusting your filters.";
-    errorMessage.classList.add("popup-error");
-    popupContainer.appendChild(errorMessage);
+  const backdrop = document.createElement("button");
+  backdrop.type = "button";
+  backdrop.className = "results-modal__backdrop";
+  backdrop.setAttribute("aria-label", "Close");
+
+  const sheet = document.createElement("div");
+  sheet.className = "results-modal__sheet";
+  sheet.addEventListener("click", (e) => e.stopPropagation());
+
+  const head = document.createElement("div");
+  head.className = "results-modal__head";
+
+  const titles = document.createElement("div");
+  titles.className = "results-modal__titles";
+
+  const eyebrow = document.createElement("p");
+  eyebrow.className = "results-modal__eyebrow";
+  eyebrow.textContent = "Your picks";
+
+  const heading = document.createElement("h2");
+  heading.id = "results-modal-title";
+  heading.className = "results-modal__title";
+  heading.textContent = showEmpty
+    ? "Nothing matched yet"
+    : `${typeLabel} for you`;
+
+  const meta = document.createElement("p");
+  meta.className = "results-modal__meta";
+  if (!showEmpty) {
+    meta.textContent = `${data.length} title${data.length === 1 ? "" : "s"} · Adjust filters anytime`;
   } else {
-    if (!Array.isArray(data) || data.length === 0) {
-      const errorMessage = document.createElement("p");
-      errorMessage.textContent = "No recommendations found.";
-      errorMessage.classList.add("popup-error");
-      popupContainer.appendChild(errorMessage);
-    } else {
-      data.forEach((item) => {
-        const itemDiv = document.createElement("div");
-        itemDiv.classList.add("popup-item");
+    meta.textContent = "Try broadening genres or changing the year range.";
+  }
 
-        const title = document.createElement("h3");
-        title.textContent = item.title || item.name || "No Title";
-        itemDiv.appendChild(title);
+  titles.appendChild(eyebrow);
+  titles.appendChild(heading);
+  titles.appendChild(meta);
 
-        let imageUrl = "";
-        let rating = ""; // Initialize rating variable
+  const closeBtn = document.createElement("button");
+  closeBtn.type = "button";
+  closeBtn.className = "results-modal__close";
+  closeBtn.setAttribute("aria-label", "Close");
+  closeBtn.innerHTML = "&times;";
 
-        // Determine the image URL and rating based on the entertainment type
-        if (entertainmentType === "movie") {
-          imageUrl = item.poster_path
-            ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
+  head.appendChild(titles);
+  head.appendChild(closeBtn);
+
+  const body = document.createElement("div");
+  body.className = "results-modal__body";
+
+  const grid = document.createElement("div");
+  grid.className = "results-grid";
+
+  if (showEmpty) {
+    const empty = document.createElement("p");
+    empty.className = "results-empty";
+    empty.textContent = noRecommendations
+      ? "No recommendations matched those filters. Loosen genres or pick another year bucket."
+      : "No recommendations found.";
+    body.appendChild(empty);
+  } else {
+    data.forEach((item) => {
+      const card = document.createElement("article");
+      card.className = "result-card";
+
+      const media = document.createElement("div");
+      media.className = "result-card__media";
+
+      let imageUrl = "";
+      let ratingText = "";
+
+      if (entertainmentType === "movie") {
+        imageUrl = item.poster_path
+          ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
+          : "";
+        ratingText =
+          item.vote_average != null && item.vote_average !== ""
+            ? String(item.vote_average).slice(0, 4)
             : "";
-          rating = item.vote_average
-            ? `Rating: ${item.vote_average}/10`
-            : "Rating: N/A";
-        } else if (
-          entertainmentType === "anime" ||
-          entertainmentType === "manga"
-        ) {
-          imageUrl = item.images?.jpg?.image_url || "";
-          rating = item.score ? `Rating: ${item.score}/10` : "Rating: N/A";
-        }
+      } else if (
+        entertainmentType === "anime" ||
+        entertainmentType === "manga"
+      ) {
+        imageUrl = item.images?.jpg?.image_url || "";
+        ratingText =
+          item.score != null && item.score !== ""
+            ? String(item.score).slice(0, 4)
+            : "";
+      }
 
-        const img = document.createElement("img");
-        img.src = imageUrl;
-        img.alt = item.title || item.name;
-        img.onerror = function () {
-          this.src = "placeholder-image.png"; // Fallback image
-        };
-        itemDiv.appendChild(img);
+      if (!imageUrl) {
+        media.classList.add("result-card__media--empty");
+      }
 
-        // Display the rating below the image
-        const ratingParagraph = document.createElement("p");
-        ratingParagraph.textContent = rating;
-        itemDiv.appendChild(ratingParagraph);
-
-        // Add "More Info" link
-        const moreInfoLink = document.createElement("a");
-        moreInfoLink.textContent = "More Info";
-        moreInfoLink.target = "_blank";
-
-        if (entertainmentType === "movie") {
-          moreInfoLink.href = `https://www.themoviedb.org/movie/${item.id}`;
-        } else if (entertainmentType === "anime") {
-          moreInfoLink.href = `https://myanimelist.net/anime/${item.mal_id}`;
-        } else if (entertainmentType === "manga") {
-          moreInfoLink.href = `https://myanimelist.net/manga/${item.mal_id}`;
-        }
-
-        itemDiv.appendChild(moreInfoLink); // Add the link to each item
-
-        popupContainer.appendChild(itemDiv);
+      const img = document.createElement("img");
+      img.src = imageUrl || "";
+      img.alt = "";
+      img.loading = "lazy";
+      img.decoding = "async";
+      if (imageUrl) {
+        img.alt = item.title || item.name || "";
+      }
+      img.addEventListener("error", () => {
+        media.classList.add("result-card__media--empty");
+        img.removeAttribute("src");
       });
+
+      if (imageUrl) {
+        media.appendChild(img);
+      }
+
+      if (ratingText) {
+        const badge = document.createElement("span");
+        badge.className = "result-card__badge";
+        badge.textContent = `${ratingText} ★`;
+        media.appendChild(badge);
+      }
+
+      const cardBody = document.createElement("div");
+      cardBody.className = "result-card__body";
+
+      const titleEl = document.createElement("h3");
+      titleEl.className = "result-card__title";
+      titleEl.textContent = item.title || item.name || "Untitled";
+
+      const link = document.createElement("a");
+      link.className = "result-card__link";
+      link.textContent = "Open details →";
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+
+      if (entertainmentType === "movie") {
+        link.href = `https://www.themoviedb.org/movie/${item.id}`;
+      } else if (entertainmentType === "anime") {
+        link.href = `https://myanimelist.net/anime/${item.mal_id}`;
+      } else if (entertainmentType === "manga") {
+        link.href = `https://myanimelist.net/manga/${item.mal_id}`;
+      }
+
+      cardBody.appendChild(titleEl);
+      cardBody.appendChild(link);
+
+      card.appendChild(media);
+      card.appendChild(cardBody);
+      grid.appendChild(card);
+    });
+    body.appendChild(grid);
+  }
+
+  const footer = document.createElement("div");
+  footer.className = "results-modal__footer";
+
+  const regenerateBtn = document.createElement("button");
+  regenerateBtn.type = "button";
+  regenerateBtn.className = "btn btn--primary btn--full";
+  regenerateBtn.textContent = "Regenerate recommendations";
+  regenerateBtn.addEventListener("click", () => {
+    destroyModal();
+    generateRecommendation();
+  });
+
+  footer.appendChild(regenerateBtn);
+
+  sheet.appendChild(head);
+  sheet.appendChild(body);
+  sheet.appendChild(footer);
+
+  modal.appendChild(backdrop);
+  modal.appendChild(sheet);
+
+  function destroyModal() {
+    document.removeEventListener("keydown", onKey);
+    modal.remove();
+  }
+
+  function onKey(e) {
+    if (e.key === "Escape") {
+      destroyModal();
     }
   }
 
-  // Append the popup container to the popup
-  popup.appendChild(popupContainer);
+  backdrop.addEventListener("click", destroyModal);
+  closeBtn.addEventListener("click", destroyModal);
+  document.addEventListener("keydown", onKey);
 
-  // Add Regenerate Button outside of popupContainer
-  const regenerateButton = document.createElement("button");
-  regenerateButton.textContent = "Regenerate Recommendations";
-  regenerateButton.classList.add("regenerate-button");
-  regenerateButton.onclick = () => {
-    popup.remove(); // Close popup before regenerating
-    generateRecommendation(); // Call function to regenerate recommendations
-  };
-
-  popup.appendChild(regenerateButton); // Add the regenerate button to the popup directly
-
-  document.body.appendChild(popup);
+  document.body.appendChild(modal);
+  closeBtn.focus();
 }
 
 function displaySpinner() {
@@ -793,3 +914,53 @@ async function fetchMovieGenres() {
     console.error("Error fetching movie genres:", error);
   }
 }
+
+function initTypeCards() {
+  const select = document.getElementById("entertainment-type");
+  const cards = document.querySelectorAll(".type-card");
+
+  function syncCards() {
+    const v = select.value;
+    cards.forEach((btn) => {
+      const on = btn.dataset.typeValue === v;
+      btn.classList.toggle("type-card--active", on);
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+  }
+
+  cards.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      select.value = btn.dataset.typeValue;
+      updateSelections();
+      syncCards();
+    });
+  });
+
+  select.addEventListener("change", syncCards);
+}
+
+function initDropdownKeyboard() {
+  const genreToggle = document.getElementById("genre-dropdown");
+  const excludeToggle = document.getElementById("exclude-genre-dropdown");
+  if (genreToggle) {
+    genreToggle.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        toggleDropdown();
+      }
+    });
+  }
+  if (excludeToggle) {
+    excludeToggle.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        toggleExcludeDropdown();
+      }
+    });
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  initTypeCards();
+  initDropdownKeyboard();
+});
